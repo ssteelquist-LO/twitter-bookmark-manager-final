@@ -13,6 +13,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Handle demo users - return empty data
+    if (session.user.id === 'demo-user-id') {
+      return NextResponse.json({
+        bookmarks: [],
+        total: 0,
+        page: 1,
+        pages: 0,
+      });
+    }
+
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const search = searchParams.get('search');

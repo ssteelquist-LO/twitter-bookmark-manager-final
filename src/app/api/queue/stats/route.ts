@@ -13,6 +13,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Handle demo users - return empty queue stats
+    if (session.user.id === 'demo-user-id') {
+      return NextResponse.json({
+        pending: 0,
+        processing: 0,
+        isRedisAvailable: false,
+      });
+    }
+
     const stats = await getQueueStats();
 
     return NextResponse.json(stats);
