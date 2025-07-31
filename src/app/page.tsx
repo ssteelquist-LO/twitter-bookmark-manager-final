@@ -32,34 +32,62 @@ export default async function Home() {
   let bookmarks = [];
   let categories = [];
   
-  try {
-    const results = await Promise.all([
-      prisma.bookmark.findMany({
-        where: { userId: session.user.id },
-        orderBy: { bookmarkedAt: 'desc' },
-        take: 20,
-      }),
-      prisma.bookmark.groupBy({
-        by: ['category'],
-        where: {
-          userId: session.user.id,
-          category: { not: null },
-        },
-        _count: {
-          category: true,
-        },
-        orderBy: {
-          _count: {
-            category: 'desc',
+  // Skip database queries for demo users (JWT sessions)
+  const isDemo = session.user.id === 'demo-user-id';
+  
+  if (!isDemo) {
+    try {
+      const results = await Promise.all([
+        prisma.bookmark.findMany({
+          where: { userId: session.user.id },
+          orderBy: { bookmarkedAt: 'desc' },
+          take: 20,
+        }),
+        prisma.bookmark.groupBy({
+          by: ['category'],
+          where: {
+            userId: session.user.id,
+            category: { not: null },
           },
-        },
-      }),
-    ]);
-    bookmarks = results[0];
-    categories = results[1];
-  } catch (error) {
-    console.error('Database error:', error);
-    // Continue with empty arrays
+          _count: {
+            category: true,
+          },
+          orderBy: {
+            _count: {
+              category: 'desc',
+            },
+          },
+        }),
+      ]);
+      bookmarks = results[0];
+      categories = results[1];
+    } catch (error) {
+      console.error('Database error:', error);
+      // Continue with empty arrays
+    }
+  } else {
+    // Demo data for demo users
+    bookmarks = [
+      {
+        id: 'demo-1',
+        tweetId: 'demo-tweet-1',
+        tweetUrl: 'https://twitter.com/example/status/1',
+        author: 'Demo User',
+        content: 'This is a demo bookmark! Twitter API integration coming soon.',
+        bookmarkedAt: new Date(),
+        category: 'Demo',
+        summary: 'Demo bookmark for testing the interface',
+        sentiment: 'positive',
+        keywords: 'demo, test, bookmark',
+        isThread: false,
+        threadSummary: null,
+        exportedToSheets: false,
+        exportedAt: null,
+        userId: 'demo-user-id',
+        createdAt: new Date(),
+      }
+    ];
+    categories = [{ category: 'Demo', _count: { category: 1 } }];
   }
 
   const formattedCategories = categories.map(cat => ({
