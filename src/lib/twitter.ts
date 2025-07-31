@@ -1,11 +1,19 @@
 import { TwitterApi } from 'twitter-api-v2';
 
-const twitterClient = new TwitterApi({
-  appKey: process.env.TWITTER_API_KEY!,
-  appSecret: process.env.TWITTER_API_SECRET!,
-  accessToken: process.env.TWITTER_ACCESS_TOKEN,
-  accessSecret: process.env.TWITTER_ACCESS_SECRET,
-});
+const hasTwitterConfig = process.env.TWITTER_API_KEY && process.env.TWITTER_API_SECRET;
+
+const createTwitterClient = () => {
+  if (!hasTwitterConfig) {
+    throw new Error('Twitter API credentials not configured');
+  }
+  
+  return new TwitterApi({
+    appKey: process.env.TWITTER_API_KEY!,
+    appSecret: process.env.TWITTER_API_SECRET!,
+    accessToken: process.env.TWITTER_ACCESS_TOKEN,
+    accessSecret: process.env.TWITTER_ACCESS_SECRET,
+  });
+};
 
 export interface TwitterBookmark {
   id: string;
@@ -24,7 +32,7 @@ export class TwitterService {
   private client: TwitterApi;
   
   constructor() {
-    this.client = twitterClient;
+    this.client = createTwitterClient();
   }
 
   async getUserBookmarks(userId: string): Promise<TwitterBookmark[]> {

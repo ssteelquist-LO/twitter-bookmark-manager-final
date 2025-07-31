@@ -33,8 +33,17 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        const twitterService = new TwitterService();
-        const bookmarks = await twitterService.getUserBookmarks(user.id);
+        let bookmarks;
+        try {
+          const twitterService = new TwitterService();
+          bookmarks = await twitterService.getUserBookmarks(user.id);
+        } catch (twitterError) {
+          if (twitterError instanceof Error && twitterError.message.includes('credentials not configured')) {
+            console.log(`Skipping user ${user.id} - Twitter API not configured`);
+            continue;
+          }
+          throw twitterError;
+        }
         
         let userSyncedCount = 0;
         
