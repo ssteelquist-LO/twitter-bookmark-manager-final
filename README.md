@@ -141,3 +141,4 @@ See [CLAUDE.md](./CLAUDE.md) for detailed deployment instructions.
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
