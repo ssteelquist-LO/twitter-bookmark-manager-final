@@ -6,15 +6,15 @@ import { prisma } from './prisma';
 
 export const authOptions: NextAuthOptions = {
   // Only use database adapter for Twitter auth, not for demo auth
-  ...(process.env.TWITTER_API_KEY && process.env.TWITTER_API_SECRET ? {
+  ...(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET ? {
     adapter: PrismaAdapter(prisma)
   } : {}),
   providers: [
-    // Twitter provider (only enabled if API keys are present)
-    ...(process.env.TWITTER_API_KEY && process.env.TWITTER_API_SECRET ? [
+    // Twitter provider (only enabled if OAuth 2.0 credentials are present)
+    ...(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET ? [
       TwitterProvider({
-        clientId: process.env.TWITTER_API_KEY,
-        clientSecret: process.env.TWITTER_API_SECRET,
+        clientId: process.env.TWITTER_CLIENT_ID,
+        clientSecret: process.env.TWITTER_CLIENT_SECRET,
         version: '2.0',
       })
     ] : []),
