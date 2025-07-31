@@ -66,7 +66,8 @@ export default async function Home() {
       // Continue with empty arrays
     }
   } else {
-    // Demo data for demo users
+    // Demo data for demo users - use fixed dates to prevent hydration mismatch
+    const fixedDate = new Date('2024-01-01T00:00:00Z');
     bookmarks = [
       {
         id: 'demo-1',
@@ -74,7 +75,7 @@ export default async function Home() {
         tweetUrl: 'https://twitter.com/example/status/1',
         author: 'Demo User',
         content: 'This is a demo bookmark! Twitter API integration coming soon.',
-        bookmarkedAt: new Date(),
+        bookmarkedAt: fixedDate,
         category: 'Demo',
         summary: 'Demo bookmark for testing the interface',
         sentiment: 'positive',
@@ -84,7 +85,7 @@ export default async function Home() {
         exportedToSheets: false,
         exportedAt: null,
         userId: 'demo-user-id',
-        createdAt: new Date(),
+        createdAt: fixedDate,
       }
     ];
     categories = [{ category: 'Demo', _count: { category: 1 } }];
