@@ -55,10 +55,8 @@ export class SimpleQueue {
     let processedCount = 0;
     
     for (let i = 0; i < concurrency; i++) {
-      const result = await redis.brpop(this.queueKey, 1);
-      if (!result) continue;
-      
-      const jobData = result[1];
+      const jobData = await redis.rpop(this.queueKey);
+      if (!jobData) continue;
       await redis.lpush(this.processingKey, jobData);
 
       try {
