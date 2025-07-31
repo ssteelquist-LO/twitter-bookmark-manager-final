@@ -1,5 +1,4 @@
 import { google } from 'googleapis';
-import { Bookmark } from '@prisma/client';
 
 export interface SheetBookmark {
   id: string;
