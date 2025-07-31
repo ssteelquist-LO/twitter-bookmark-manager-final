@@ -29,8 +29,8 @@ export default async function Home() {
     );
   }
 
-  let bookmarks = [];
-  let categories = [];
+  let bookmarks: any[] = [];
+  let categories: any[] = [];
   
   // Skip database queries for demo users (JWT sessions)
   const isDemo = session.user.id === 'demo-user-id';
