@@ -29,28 +29,38 @@ export default async function Home() {
     );
   }
 
-  const [bookmarks, categories] = await Promise.all([
-    prisma.bookmark.findMany({
-      where: { userId: session.user.id },
-      orderBy: { bookmarkedAt: 'desc' },
-      take: 20,
-    }),
-    prisma.bookmark.groupBy({
-      by: ['category'],
-      where: {
-        userId: session.user.id,
-        category: { not: null },
-      },
-      _count: {
-        category: true,
-      },
-      orderBy: {
-        _count: {
-          category: 'desc',
+  let bookmarks = [];
+  let categories = [];
+  
+  try {
+    const results = await Promise.all([
+      prisma.bookmark.findMany({
+        where: { userId: session.user.id },
+        orderBy: { bookmarkedAt: 'desc' },
+        take: 20,
+      }),
+      prisma.bookmark.groupBy({
+        by: ['category'],
+        where: {
+          userId: session.user.id,
+          category: { not: null },
         },
-      },
-    }),
-  ]);
+        _count: {
+          category: true,
+        },
+        orderBy: {
+          _count: {
+            category: 'desc',
+          },
+        },
+      }),
+    ]);
+    bookmarks = results[0];
+    categories = results[1];
+  } catch (error) {
+    console.error('Database error:', error);
+    // Continue with empty arrays
+  }
 
   const formattedCategories = categories.map(cat => ({
     name: cat.category!,
