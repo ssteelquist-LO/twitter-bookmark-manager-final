@@ -29,7 +29,7 @@ export class TwitterService {
 
   async getUserBookmarks(userId: string): Promise<TwitterBookmark[]> {
     try {
-      const bookmarks = await this.client.v2.bookmarks(userId, {
+      const bookmarks = await this.client.v2.bookmarks({
         'tweet.fields': ['created_at', 'author_id', 'conversation_id', 'public_metrics'],
         'user.fields': ['username', 'name'],
         expansions: ['author_id'],
