@@ -66,29 +66,10 @@ export default async function Home() {
       // Continue with empty arrays
     }
   } else {
-    // Demo data for demo users - use fixed dates to prevent hydration mismatch
-    const fixedDate = new Date('2024-01-01T00:00:00Z');
-    bookmarks = [
-      {
-        id: 'demo-1',
-        tweetId: 'demo-tweet-1',
-        tweetUrl: 'https://twitter.com/example/status/1',
-        author: 'Demo User',
-        content: 'This is a demo bookmark! Twitter API integration coming soon.',
-        bookmarkedAt: fixedDate,
-        category: 'Demo',
-        summary: 'Demo bookmark for testing the interface',
-        sentiment: 'positive',
-        keywords: 'demo, test, bookmark',
-        isThread: false,
-        threadSummary: null,
-        exportedToSheets: false,
-        exportedAt: null,
-        userId: 'demo-user-id',
-        createdAt: fixedDate,
-      }
-    ];
-    categories = [{ category: 'Demo', _count: { category: 1 } }];
+    // Demo users get empty arrays to avoid hydration issues
+    // The dashboard will show empty state with instructions
+    bookmarks = [];
+    categories = [];
   }
 
   const formattedCategories = categories.map(cat => ({
