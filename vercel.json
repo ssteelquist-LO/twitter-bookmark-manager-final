@@ -1,0 +1,23 @@
+{
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/**/*.ts": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/sync-bookmarks",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/process-queue",
+      "schedule": "*/5 * * * *"
+    }
+  ],
+  "env": {
+    "VERCEL_ENV": "production"
+  }
+}
