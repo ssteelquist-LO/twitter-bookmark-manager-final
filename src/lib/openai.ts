@@ -1,9 +1,17 @@
 import OpenAI from 'openai';
 import { USAGE_LIMITS, trackOpenAIUsage } from './usage-limits';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+const hasOpenAIConfig = process.env.OPENAI_API_KEY;
+
+const createOpenAIClient = () => {
+  if (!hasOpenAIConfig) {
+    throw new Error('OpenAI API key not configured');
+  }
+  
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
+};
 
 export interface BookmarkAnalysis {
   category: string;
@@ -17,6 +25,7 @@ export interface BookmarkAnalysis {
 export class OpenAIService {
   async analyzeBookmark(content: string, isThread: boolean = false, threadContent?: string[]): Promise<BookmarkAnalysis> {
     try {
+      const openai = createOpenAIClient();
       const prompt = this.buildAnalysisPrompt(content, isThread, threadContent);
       
       const response = await openai.chat.completions.create({
@@ -42,7 +51,11 @@ export class OpenAIService {
       const analysisText = response.choices[0]?.message?.content || '';
       return this.parseAnalysis(analysisText, isThread);
     } catch (error) {
-      console.error('Error analyzing bookmark:', error);
+      if (error instanceof Error && error.message.includes('OpenAI API key not configured')) {
+        console.log('OpenAI not configured, using fallback analysis');
+      } else {
+        console.error('Error analyzing bookmark:', error);
+      }
       return this.getDefaultAnalysis(content, isThread);
     }
   }
@@ -111,6 +124,7 @@ ${bookmarks.map((b, i) => `${i + 1}. ${b.summary || b.content.substring(0, 100)}
 Return only a JSON array of category names, no additional text.
 `;
 
+      const openai = createOpenAIClient();
       const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
@@ -132,7 +146,11 @@ Return only a JSON array of category names, no additional text.
       
       return Array.isArray(categories) ? categories : ['Technology', 'Business', 'Education', 'Entertainment'];
     } catch (error) {
-      console.error('Error categorizing bookmarks:', error);
+      if (error instanceof Error && error.message.includes('OpenAI API key not configured')) {
+        console.log('OpenAI not configured, using default categories');
+      } else {
+        console.error('Error categorizing bookmarks:', error);
+      }
       return ['Technology', 'Business', 'Education', 'Entertainment'];
     }
   }
