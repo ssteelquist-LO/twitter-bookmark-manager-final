@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing analysis queue:', error);
     return NextResponse.json(
-      { error: 'Failed to process queue', details: error.message },
+      { error: 'Failed to process queue', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

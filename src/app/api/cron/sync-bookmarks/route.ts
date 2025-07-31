@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error in scheduled bookmark sync:', error);
     return NextResponse.json(
-      { error: 'Failed to sync bookmarks', details: error.message },
+      { error: 'Failed to sync bookmarks', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
