@@ -32,10 +32,11 @@ export default async function Home() {
   let bookmarks: any[] = [];
   let categories: any[] = [];
   
-  // Skip database queries for demo users (JWT sessions)
+  // Skip database queries for demo users OR when database is not available
   const isDemo = session.user.id === 'demo-user-id';
+  const noDatabaseMode = !process.env.DATABASE_URL;
   
-  if (!isDemo) {
+  if (!isDemo && !noDatabaseMode) {
     try {
       const results = await Promise.all([
         prisma.bookmark.findMany({
