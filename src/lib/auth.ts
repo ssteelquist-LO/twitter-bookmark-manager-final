@@ -5,10 +5,8 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 
 export const authOptions: NextAuthOptions = {
-  // Only use database adapter for Twitter auth, not for demo auth
-  ...(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET ? {
-    adapter: PrismaAdapter(prisma)
-  } : {}),
+  // Temporarily disable database adapter to fix connection issues
+  // adapter: PrismaAdapter(prisma),
   providers: [
     // Twitter provider (only enabled if OAuth 2.0 credentials are present)
     ...(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET ? [
