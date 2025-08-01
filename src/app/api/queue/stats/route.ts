@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Handle demo users - return empty queue stats
-    if (session.user.id === 'demo-user-id') {
+    // Handle demo users OR when database is not available - return empty queue stats  
+    if (session.user.id === 'demo-user-id' || !process.env.DATABASE_URL) {
       return NextResponse.json({
         pending: 0,
         processing: 0,
