@@ -41,16 +41,16 @@ export async function POST(request: NextRequest) {
 
       // Create browser session
       console.log('Creating browser session...');
-      const session = await bb.sessions.create({
+      const browserSession = await bb.sessions.create({
         projectId: process.env.BROWSERBASE_PROJECT_ID!,
       });
       
-      console.log('Browser session created:', session.id);
-      console.log('Connect URL:', session.connectUrl);
+      console.log('Browser session created:', browserSession.id);
+      console.log('Connect URL:', browserSession.connectUrl);
 
       // Connect to the browser using Playwright
       console.log('Connecting to browser with Playwright...');
-      const browser = await chromium.connectOverCDP(session.connectUrl);
+      const browser = await chromium.connectOverCDP(browserSession.connectUrl);
       
       // Get the default context and page
       const context = browser.contexts()[0];
