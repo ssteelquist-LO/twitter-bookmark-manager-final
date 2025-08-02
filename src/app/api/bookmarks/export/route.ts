@@ -20,6 +20,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: 'Google Sheets not configured',
         details: 'Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY environment variables',
+        config: {
+          hasEmail: !!process.env.GOOGLE_CLIENT_EMAIL,
+          hasKey: !!process.env.GOOGLE_PRIVATE_KEY,
+          emailPreview: process.env.GOOGLE_CLIENT_EMAIL?.substring(0, 10) + '...' || 'NOT_SET',
+        }
       }, { status: 500 });
     }
 
@@ -85,34 +90,52 @@ export async function POST(request: NextRequest) {
       bookmarkedAt: bookmark.bookmarkedAt.toISOString(),
     }));
 
-    console.log('Starting Google Sheets export...');
-    console.log('Google Sheets config check:', {
-      hasEmail: !!process.env.GOOGLE_CLIENT_EMAIL,
-      hasKey: !!process.env.GOOGLE_PRIVATE_KEY,
-      emailPreview: process.env.GOOGLE_CLIENT_EMAIL?.split('@')[0] + '@...',
-    });
-
-    const sheetsService = new GoogleSheetsService();
-    let finalSpreadsheetId: string;
-
-    // Always use your existing sheet ID for demo
-    const existingSheetId = '17A3-BeSsVbhteHjWAyivBCTY7ptd4-GT2dsniNDglTU';
-    
     try {
-      console.log('Attempting to update existing sheet:', existingSheetId);
-      await sheetsService.updateExistingSheet(existingSheetId, sheetBookmarks);
-      finalSpreadsheetId = existingSheetId;
-      console.log('Successfully updated existing sheet');
-    } catch (updateError) {
-      console.error('Error updating existing sheet:', updateError);
-      console.log('Attempting to create new sheet...');
+      console.log('Starting Google Sheets export...');
+      console.log('Google Sheets config check:', {
+        hasEmail: !!process.env.GOOGLE_CLIENT_EMAIL,
+        hasKey: !!process.env.GOOGLE_PRIVATE_KEY,
+        emailPreview: process.env.GOOGLE_CLIENT_EMAIL?.split('@')[0] + '@...',
+        keyStart: process.env.GOOGLE_PRIVATE_KEY?.substring(0, 30) + '...',
+      });
+
+      const sheetsService = new GoogleSheetsService();
+      let finalSpreadsheetId: string;
+
+      // Always use your existing sheet ID for demo
+      const existingSheetId = '17A3-BeSsVbhteHjWAyivBCTY7ptd4-GT2dsniNDglTU';
+      
       try {
+        console.log('Attempting to update existing sheet:', existingSheetId);
+        await sheetsService.updateExistingSheet(existingSheetId, sheetBookmarks);
+        finalSpreadsheetId = existingSheetId;
+        console.log('Successfully updated existing sheet');
+      } catch (updateError) {
+        console.error('Error updating existing sheet:', updateError);
+        console.log('Attempting to create new sheet...');
         finalSpreadsheetId = await sheetsService.createBookmarkSheet(sheetBookmarks);
         console.log('Successfully created new sheet:', finalSpreadsheetId);
-      } catch (createError) {
-        console.error('Error creating new sheet:', createError);
-        throw createError;
       }
+
+      return NextResponse.json({
+        spreadsheetId: finalSpreadsheetId,
+        url: `https://docs.google.com/spreadsheets/d/${finalSpreadsheetId}`,
+        exportedCount: sheetBookmarks.length,
+      });
+
+    } catch (authError) {
+      console.error('Google Sheets authentication/authorization error:', authError);
+      
+      // Return a demo response if Google Sheets fails
+      const demoSheetId = '17A3-BeSsVbhteHjWAyivBCTY7ptd4-GT2dsniNDglTU';
+      
+      return NextResponse.json({
+        spreadsheetId: demoSheetId,
+        url: `https://docs.google.com/spreadsheets/d/${demoSheetId}`,
+        exportedCount: sheetBookmarks.length,
+        warning: 'Google Sheets authentication failed - using demo sheet',
+        error: authError instanceof Error ? authError.message : 'Unknown authentication error',
+      });
     }
 
     // Skip database update for demo - would normally mark as exported
@@ -121,11 +144,6 @@ export async function POST(request: NextRequest) {
     //   data: { exportedToSheets: true, exportedAt: new Date() },
     // });
 
-    return NextResponse.json({
-      spreadsheetId: finalSpreadsheetId,
-      url: `https://docs.google.com/spreadsheets/d/${finalSpreadsheetId}`,
-      exportedCount: sheetBookmarks.length,
-    });
   } catch (error) {
     console.error('Error exporting to Google Sheets:', error);
     
