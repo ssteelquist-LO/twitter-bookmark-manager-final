@@ -104,8 +104,20 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error exporting to Google Sheets:', error);
+    
+    let errorMessage = 'Failed to export to Google Sheets';
+    if (error instanceof Error) {
+      if (error.message.includes('permission')) {
+        errorMessage = 'Google Sheets permission denied. Please share the sheet with the service account email.';
+      } else if (error.message.includes('not found')) {
+        errorMessage = 'Google Sheet not found. Please check the sheet ID.';
+      } else {
+        errorMessage = `Export failed: ${error.message}`;
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to export to Google Sheets' },
+      { error: errorMessage, details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
