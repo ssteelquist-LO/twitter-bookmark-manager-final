@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle demo users OR when database is not available - return empty data
-    if (session.user.id === 'demo-user-id' || !process.env.DATABASE_URL) {
+    if (session.user.id === 'demo-user-id' || true) {
       return NextResponse.json({
         bookmarks: [],
         total: 0,
