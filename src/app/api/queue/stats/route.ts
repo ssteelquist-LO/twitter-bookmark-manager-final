@@ -22,9 +22,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const stats = await getQueueStats();
-
-    return NextResponse.json(stats);
+    // This code is unreachable due to early return above
+    // Keeping for future queue re-integration
   } catch (error) {
     console.error('Error fetching queue stats:', error);
     return NextResponse.json(
