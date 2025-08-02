@@ -59,8 +59,40 @@ export async function POST(request: NextRequest) {
       console.log('Navigating to X.com bookmarks...');
       await page.goto('https://x.com/i/bookmarks');
       
-      // Wait for bookmarks to load
-      await page.waitForSelector('[data-testid="tweet"]', { timeout: 15000 });
+      // Take a screenshot for debugging
+      console.log('Taking screenshot to see what page loaded...');
+      await page.screenshot({ path: '/tmp/x-bookmarks.png', fullPage: true });
+      
+      // Check if we need to log in first
+      const loginButton = await page.$('[data-testid="loginButton"]');
+      const signupButton = await page.$('[href="/i/flow/signup"]');
+      
+      if (loginButton || signupButton) {
+        console.log('X.com login page detected - user needs to authenticate');
+        throw new Error('X.com requires authentication. Please log in to X.com first, then try again.');
+      }
+      
+      // Wait for bookmarks to load with longer timeout
+      console.log('Waiting for tweets to load...');
+      try {
+        await page.waitForSelector('[data-testid="tweet"]', { timeout: 30000 });
+        console.log('Tweets found successfully!');
+      } catch (timeoutError) {
+        console.log('No tweets found, checking page content...');
+        const pageTitle = await page.title();
+        const pageUrl = page.url();
+        console.log('Page title:', pageTitle);
+        console.log('Page URL:', pageUrl);
+        
+        // Check for empty bookmarks message
+        const emptyMessage = await page.$('text=You haven\'t added any Bookmarks yet');
+        if (emptyMessage) {
+          console.log('User has no bookmarks saved');
+          throw new Error('No bookmarks found - your X.com bookmarks list appears to be empty.');
+        }
+        
+        throw new Error(`Could not find tweets on X.com bookmarks page. Page title: ${pageTitle}, URL: ${pageUrl}`);
+      }
       
       // Scroll to load more bookmarks
       console.log('Scrolling to load more bookmarks...');
