@@ -73,7 +73,14 @@ export async function POST(request: NextRequest) {
       console.log('Extracting bookmark data...');
       const extractedBookmarks = await page.evaluate(() => {
         const tweets = document.querySelectorAll('[data-testid="tweet"]');
-        const bookmarkData = [];
+        const bookmarkData: Array<{
+          id: string;
+          content: string;
+          authorName: string;
+          authorHandle: string;
+          tweetUrl: string;
+          createdAt: string;
+        }> = [];
         
         tweets.forEach((tweet, index) => {
           if (index >= 20) return; // Limit to first 20 bookmarks
