@@ -80,10 +80,14 @@ export async function POST(request: NextRequest) {
     const sheetsService = new GoogleSheetsService();
     let finalSpreadsheetId: string;
 
-    if (spreadsheetId) {
-      await sheetsService.updateExistingSheet(spreadsheetId, sheetBookmarks);
-      finalSpreadsheetId = spreadsheetId;
-    } else {
+    // Always use your existing sheet ID for demo
+    const existingSheetId = '17A3-BeSsVbhteHjWAyivBCTY7ptd4-GT2dsniNDglTU';
+    
+    try {
+      await sheetsService.updateExistingSheet(existingSheetId, sheetBookmarks);
+      finalSpreadsheetId = existingSheetId;
+    } catch (updateError) {
+      console.error('Error updating existing sheet, trying to create new one:', updateError);
       finalSpreadsheetId = await sheetsService.createBookmarkSheet(sheetBookmarks);
     }
 
