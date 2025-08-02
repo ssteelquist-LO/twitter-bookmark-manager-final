@@ -16,52 +16,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Test Twitter API connection first
+    console.log('Testing Twitter API connection...');
     const twitterService = new TwitterService();
-    const bookmarks = await twitterService.getUserBookmarks(session.user.id);
     
-    let syncedCount = 0;
-    let queuedCount = 0;
-    
-    for (const bookmark of bookmarks) {
-      // Check if bookmark already exists using compound key
-      const existingBookmark = await prisma.bookmark.findUnique({
-        where: {
-          userId_tweetId: {
-            userId: session.user.id,
-            tweetId: bookmark.id,
-          },
-        },
-      });
-      
-      if (existingBookmark) continue;
-
-      const savedBookmark = await prisma.bookmark.create({
-        data: {
-          userId: session.user.id,
-          tweetId: bookmark.id,
-          tweetUrl: bookmark.url,
-          authorHandle: bookmark.author.username,
-          authorName: bookmark.author.name,
-          content: bookmark.content,
-          bookmarkedAt: new Date(bookmark.createdAt),
-        },
-      });
-
-      try {
-        await queueBookmarkAnalysis(savedBookmark.id);
-        queuedCount++;
-      } catch (queueError) {
-        console.warn(`Failed to queue analysis for bookmark ${savedBookmark.id}:`, queueError);
-        // Continue processing even if queueing fails
-      }
-      
-      syncedCount++;
+    let bookmarks;
+    try {
+      bookmarks = await twitterService.getUserBookmarks(session.user.id);
+      console.log(`Fetched ${bookmarks.length} bookmarks from Twitter API`);
+    } catch (twitterError) {
+      console.error('Twitter API Error:', twitterError);
+      return NextResponse.json({
+        error: `Twitter API failed: ${twitterError instanceof Error ? twitterError.message : 'Unknown error'}`,
+        details: 'Please check your Twitter API credentials and permissions'
+      }, { status: 400 });
     }
-
+    
+    // For now, just return the bookmarks we fetched (without saving to DB)
+    // This tests if the Twitter API is working
     return NextResponse.json({
-      message: `Successfully synced ${syncedCount} new bookmarks`,
-      syncedCount,
-      queuedForAnalysis: queuedCount,
+      message: `Successfully fetched ${bookmarks.length} bookmarks from Twitter`,
+      syncedCount: 0,
+      queuedForAnalysis: 0,
+      bookmarks: bookmarks.slice(0, 3).map(b => ({
+        id: b.id,
+        content: b.content.substring(0, 100) + '...',
+        author: b.author.name,
+        url: b.url
+      })),
+      note: 'Database sync temporarily disabled - just testing Twitter API connection'
     });
   } catch (error) {
     console.error('Error syncing bookmarks:', error);
