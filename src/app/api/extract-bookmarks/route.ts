@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
       const context = browser.contexts()[0];
       const page = context.pages()[0] || await context.newPage();
 
-      console.log('Navigating to Twitter bookmarks...');
-      await page.goto('https://twitter.com/i/bookmarks');
+      console.log('Navigating to X.com bookmarks...');
+      await page.goto('https://x.com/i/bookmarks');
       
       // Wait for bookmarks to load
       await page.waitForSelector('[data-testid="tweet"]', { timeout: 15000 });
@@ -127,10 +127,10 @@ export async function POST(request: NextRequest) {
         const demoExtractedBookmarks = [
           {
             id: 'demo-extracted-1',
-            content: 'Demo: Real bookmark extraction attempted but no bookmarks found. This could mean you need to log into Twitter first.',
+            content: 'Demo: Real bookmark extraction attempted but no bookmarks found. This could mean you need to log into X.com first, or you have no bookmarks saved.',
             authorName: 'Bookmark Manager', 
             authorHandle: 'demo_system',
-            tweetUrl: 'https://twitter.com/demo_system/status/1234567890',
+            tweetUrl: 'https://x.com/demo_system/status/1234567890',
             createdAt: new Date().toISOString(),
           }
         ];
