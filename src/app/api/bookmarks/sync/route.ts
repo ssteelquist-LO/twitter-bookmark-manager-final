@@ -65,8 +65,30 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error syncing bookmarks:', error);
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Twitter API credentials not configured')) {
+        return NextResponse.json(
+          { error: 'Twitter API not configured. Please check your Twitter API credentials in environment variables.' },
+          { status: 400 }
+        );
+      }
+      
+      if (error.message.includes("Can't reach database server")) {
+        return NextResponse.json(
+          { error: 'Database connection failed. Please try again in a moment.' },
+          { status: 503 }
+        );
+      }
+      
+      return NextResponse.json(
+        { error: `Sync failed: ${error.message}` },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to sync bookmarks' },
+      { error: 'Failed to sync bookmarks - unknown error' },
       { status: 500 }
     );
   }
