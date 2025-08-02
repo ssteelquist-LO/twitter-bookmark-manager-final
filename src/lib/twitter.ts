@@ -31,13 +31,33 @@ export interface TwitterBookmark {
 export class TwitterService {
   private client: TwitterApi;
   
-  constructor() {
-    this.client = createTwitterClient();
+  constructor(accessToken?: string, accessSecret?: string) {
+    if (accessToken && accessSecret) {
+      // Use user's OAuth tokens for bookmark access
+      this.client = new TwitterApi({
+        appKey: process.env.TWITTER_API_KEY!,
+        appSecret: process.env.TWITTER_API_SECRET!,
+        accessToken: accessToken,
+        accessSecret: accessSecret,
+      });
+    } else {
+      this.client = createTwitterClient();
+    }
   }
 
-  async getUserBookmarks(userId: string): Promise<TwitterBookmark[]> {
+  async getUserBookmarks(userId: string, accessToken?: string, accessSecret?: string): Promise<TwitterBookmark[]> {
     try {
-      const bookmarks = await this.client.v2.bookmarks({
+      // Create client with user's tokens if provided
+      const userClient = accessToken && accessSecret 
+        ? new TwitterApi({
+            appKey: process.env.TWITTER_API_KEY!,
+            appSecret: process.env.TWITTER_API_SECRET!,
+            accessToken: accessToken,
+            accessSecret: accessSecret,
+          })
+        : this.client;
+
+      const bookmarks = await userClient.v2.bookmarks({
         'tweet.fields': ['created_at', 'author_id', 'conversation_id', 'public_metrics'],
         'user.fields': ['username', 'name'],
         expansions: ['author_id'],
