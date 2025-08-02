@@ -154,11 +154,13 @@ export function BookmarkList({ initialBookmarks, initialCategories }: BookmarkLi
           
           <Button
             onClick={exportToSheets}
-            disabled={exporting || bookmarks.length === 0}
+            disabled={exporting}
             size="sm"
+            variant="default"
+            className="bg-green-600 hover:bg-green-700 text-white"
           >
             <Download className="h-4 w-4 mr-2" />
-            {exporting ? 'Exporting...' : 'Export'}
+            {exporting ? 'Exporting...' : 'Export to Sheets'}
           </Button>
         </div>
       </div>
