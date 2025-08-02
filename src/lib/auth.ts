@@ -5,7 +5,8 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // Temporarily disable database adapter while fixing Supabase connectivity
+  // adapter: PrismaAdapter(prisma),
   providers: [
     // Twitter provider (only enabled if OAuth 2.0 credentials are present)
     ...(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET ? [
