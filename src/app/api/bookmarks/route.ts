@@ -47,24 +47,38 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const [bookmarks, total] = await Promise.all([
-      prisma.bookmark.findMany({
-        where,
-        orderBy: { bookmarkedAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      prisma.bookmark.count({ where }),
-    ]);
+    try {
+      const [bookmarks, total] = await Promise.all([
+        prisma.bookmark.findMany({
+          where,
+          orderBy: { bookmarkedAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        prisma.bookmark.count({ where }),
+      ]);
 
-    const pages = Math.ceil(total / limit);
+      const pages = Math.ceil(total / limit);
 
-    return NextResponse.json({
-      bookmarks,
-      total,
-      page,
-      pages,
-    });
+      return NextResponse.json({
+        bookmarks,
+        total,
+        page,
+        pages,
+      });
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      
+      // Return empty data when database is unreachable
+      return NextResponse.json({
+        bookmarks: [],
+        total: 0,
+        page: 1,
+        pages: 0,
+        databaseError: true,
+        message: 'Database temporarily unavailable - working on connection issues'
+      });
+    }
   } catch (error) {
     console.error('Error fetching bookmarks:', error);
     return NextResponse.json(
