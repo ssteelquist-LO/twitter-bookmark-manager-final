@@ -41,11 +41,10 @@ export async function GET(request: NextRequest) {
       
       // Return demo categories when database is unavailable
       const demoCategories = [
-        { name: 'Technology', count: 5 },
-        { name: 'Web Development', count: 3 },
+        { name: 'Technology', count: 1 },
+        { name: 'Web Development', count: 2 },
         { name: 'Programming', count: 2 },
-        { name: 'AI & Machine Learning', count: 4 },
-        { name: 'Business', count: 1 },
+        { name: 'AI & Machine Learning', count: 1 },
       ];
 
       return NextResponse.json(demoCategories);
