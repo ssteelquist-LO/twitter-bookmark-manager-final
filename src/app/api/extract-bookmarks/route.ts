@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { addToQueue } from '@/lib/queue';
+import { queueBookmarkAnalysis } from '@/lib/queue';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -183,12 +183,7 @@ export async function POST(request: NextRequest) {
           
           // Queue for AI analysis if not already analyzed
           if (!savedBookmark.category || !savedBookmark.summary) {
-            await addToQueue('analyze-bookmark', {
-              bookmarkId: savedBookmark.id,
-              userId: session.user.id,
-              content: bookmark.content,
-              tweetUrl: bookmark.tweetUrl,
-            });
+            await queueBookmarkAnalysis(savedBookmark.id);
             queuedCount++;
           }
           
