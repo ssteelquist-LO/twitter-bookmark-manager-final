@@ -85,14 +85,35 @@ export async function POST(request: NextRequest) {
       bookmarkedAt: bookmark.bookmarkedAt.toISOString(),
     }));
 
-    // For demo mode, simulate successful export without actually calling Google Sheets API
-    // This avoids authentication issues while demonstrating the export functionality
+    console.log('Starting Google Sheets export...');
+    console.log('Google Sheets config check:', {
+      hasEmail: !!process.env.GOOGLE_CLIENT_EMAIL,
+      hasKey: !!process.env.GOOGLE_PRIVATE_KEY,
+      emailPreview: process.env.GOOGLE_CLIENT_EMAIL?.split('@')[0] + '@...',
+    });
+
+    const sheetsService = new GoogleSheetsService();
+    let finalSpreadsheetId: string;
+
+    // Always use your existing sheet ID for demo
     const existingSheetId = '17A3-BeSsVbhteHjWAyivBCTY7ptd4-GT2dsniNDglTU';
     
-    // Simulate export delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const finalSpreadsheetId = existingSheetId;
+    try {
+      console.log('Attempting to update existing sheet:', existingSheetId);
+      await sheetsService.updateExistingSheet(existingSheetId, sheetBookmarks);
+      finalSpreadsheetId = existingSheetId;
+      console.log('Successfully updated existing sheet');
+    } catch (updateError) {
+      console.error('Error updating existing sheet:', updateError);
+      console.log('Attempting to create new sheet...');
+      try {
+        finalSpreadsheetId = await sheetsService.createBookmarkSheet(sheetBookmarks);
+        console.log('Successfully created new sheet:', finalSpreadsheetId);
+      } catch (createError) {
+        console.error('Error creating new sheet:', createError);
+        throw createError;
+      }
+    }
 
     // Skip database update for demo - would normally mark as exported
     // await prisma.bookmark.updateMany({
@@ -104,8 +125,6 @@ export async function POST(request: NextRequest) {
       spreadsheetId: finalSpreadsheetId,
       url: `https://docs.google.com/spreadsheets/d/${finalSpreadsheetId}`,
       exportedCount: sheetBookmarks.length,
-      demo: true,
-      message: 'Demo export successful - Google Sheets integration needs debugging',
     });
   } catch (error) {
     console.error('Error exporting to Google Sheets:', error);
