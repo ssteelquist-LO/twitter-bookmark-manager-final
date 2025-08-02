@@ -5,7 +5,7 @@ import { BookmarkCard } from './BookmarkCard';
 import { QueueStatus } from './QueueStatus';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Download, RefreshCw, Globe } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, Globe, Upload } from 'lucide-react';
 import { Bookmark } from '@prisma/client';
 
 interface Category {
@@ -27,6 +27,7 @@ export function BookmarkList({ initialBookmarks, initialCategories }: BookmarkLi
   const [syncing, setSyncing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const fetchBookmarks = async () => {
     setLoading(true);
@@ -127,6 +128,37 @@ export function BookmarkList({ initialBookmarks, initialCategories }: BookmarkLi
     }
   };
 
+  const importBookmarks = async () => {
+    const jsonData = prompt('Paste your bookmark JSON data here:');
+    if (!jsonData) return;
+    
+    setImporting(true);
+    try {
+      const bookmarks = JSON.parse(jsonData);
+      
+      const response = await fetch('/api/import-bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookmarks }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Successfully imported ${data.savedCount} real bookmarks!\n\nQueued for AI analysis: ${data.queuedCount} bookmarks`);
+        await fetchBookmarks();
+        await fetchCategories();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to import bookmarks');
+      }
+    } catch (error) {
+      console.error('Error importing bookmarks:', error);
+      alert(`Failed to import bookmarks: ${error instanceof Error ? error.message : 'Please check your JSON format'}`);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchBookmarks();
@@ -187,6 +219,17 @@ export function BookmarkList({ initialBookmarks, initialCategories }: BookmarkLi
           >
             <Globe className={`h-4 w-4 mr-2 ${extracting ? 'animate-spin' : ''}`} />
             {extracting ? 'Extracting...' : 'Extract Real Bookmarks'}
+          </Button>
+          
+          <Button
+            onClick={importBookmarks}
+            disabled={importing}
+            size="sm"
+            variant="outline"
+            className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+          >
+            <Upload className={`h-4 w-4 mr-2 ${importing ? 'animate-spin' : ''}`} />
+            {importing ? 'Importing...' : 'Import Bookmarks'}
           </Button>
           
           <Button
