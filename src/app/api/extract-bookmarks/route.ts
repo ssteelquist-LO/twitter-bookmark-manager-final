@@ -88,13 +88,14 @@ export async function POST(request: NextRequest) {
           try {
             const textElement = tweet.querySelector('[data-testid="tweetText"]');
             const authorElement = tweet.querySelector('[data-testid="User-Name"] span');
-            const handleElement = tweet.querySelector('[data-testid="User-Name"] a');
+            const handleElement = tweet.querySelector('[data-testid="User-Name"] a') as HTMLAnchorElement;
             const timeElement = tweet.querySelector('time');
+            const linkElement = tweet.querySelector('a[href*="/status/"]') as HTMLAnchorElement;
             
             const content = textElement?.textContent || '';
             const authorName = authorElement?.textContent || 'Unknown';
             const handle = handleElement?.href?.split('/').pop() || 'unknown';
-            const tweetUrl = tweet.querySelector('a[href*="/status/"]')?.href || '';
+            const tweetUrl = linkElement?.href || '';
             const tweetId = tweetUrl.split('/status/')[1]?.split('?')[0] || '';
             
             if (content && tweetId) {
