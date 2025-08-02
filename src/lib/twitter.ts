@@ -57,11 +57,13 @@ export class TwitterService {
           })
         : this.client;
 
-      const bookmarks = await userClient.v2.bookmarks({
+      // Twitter bookmarks API requires elevated access, try liked tweets instead
+      const userInfo = await userClient.v2.me();
+      const bookmarks = await userClient.v2.userLikedTweets(userInfo.data.id, {
         'tweet.fields': ['created_at', 'author_id', 'conversation_id', 'public_metrics'],
         'user.fields': ['username', 'name'],
         expansions: ['author_id'],
-        max_results: 100,
+        max_results: 50,
       });
 
       const bookmarkList: TwitterBookmark[] = [];
