@@ -17,6 +17,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
     "@browserbasehq/sdk": "^2.6.0",
+    "playwright-core": "^1.50.0",
     "@auth/prisma-adapter": "^2.10.0",
     "@prisma/client": "^6.13.0",
     "@radix-ui/react-dialog": "^1.1.14",

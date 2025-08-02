@@ -30,8 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Import Browserbase SDK
-      const { Browserbase } = await import('@browserbasehq/sdk');
+      // Import Browserbase SDK and Playwright
+      const { default: Browserbase } = await import('@browserbasehq/sdk');
+      const { chromium } = await import('playwright-core');
       
       console.log('Initializing Browserbase SDK...');
       const bb = new Browserbase({ 
@@ -40,16 +41,20 @@ export async function POST(request: NextRequest) {
 
       // Create browser session
       console.log('Creating browser session...');
-      const browserSession = await bb.sessions.create({
+      const session = await bb.sessions.create({
         projectId: process.env.BROWSERBASE_PROJECT_ID!,
       });
       
-      console.log('Browser session created:', browserSession.id);
+      console.log('Browser session created:', session.id);
+      console.log('Connect URL:', session.connectUrl);
 
-      // Connect to the browser and extract bookmarks
-      console.log('Connecting to browser...');
-      const browser = await bb.connect(browserSession.id);
-      const page = await browser.newPage();
+      // Connect to the browser using Playwright
+      console.log('Connecting to browser with Playwright...');
+      const browser = await chromium.connectOverCDP(session.connectUrl);
+      
+      // Get the default context and page
+      const context = browser.contexts()[0];
+      const page = context.pages()[0] || await context.newPage();
 
       console.log('Navigating to Twitter bookmarks...');
       await page.goto('https://twitter.com/i/bookmarks');
