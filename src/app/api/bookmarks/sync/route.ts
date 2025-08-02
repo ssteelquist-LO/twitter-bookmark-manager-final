@@ -23,8 +23,14 @@ export async function POST(request: NextRequest) {
     let queuedCount = 0;
     
     for (const bookmark of bookmarks) {
+      // Check if bookmark already exists using compound key
       const existingBookmark = await prisma.bookmark.findUnique({
-        where: { tweetId: bookmark.id }
+        where: {
+          userId_tweetId: {
+            userId: session.user.id,
+            tweetId: bookmark.id,
+          },
+        },
       });
       
       if (existingBookmark) continue;
@@ -34,15 +40,22 @@ export async function POST(request: NextRequest) {
           userId: session.user.id,
           tweetId: bookmark.id,
           tweetUrl: bookmark.url,
-          author: bookmark.author.name,
+          authorHandle: bookmark.author.username,
+          authorName: bookmark.author.name,
           content: bookmark.content,
           bookmarkedAt: new Date(bookmark.createdAt),
         },
       });
 
-      await queueBookmarkAnalysis(savedBookmark.id);
+      try {
+        await queueBookmarkAnalysis(savedBookmark.id);
+        queuedCount++;
+      } catch (queueError) {
+        console.warn(`Failed to queue analysis for bookmark ${savedBookmark.id}:`, queueError);
+        // Continue processing even if queueing fails
+      }
+      
       syncedCount++;
-      queuedCount++;
     }
 
     return NextResponse.json({

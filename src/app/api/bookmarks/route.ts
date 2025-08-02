@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Handle demo users OR when database is not available - return empty data
-    if (session.user.id === 'demo-user-id' || true) {
+    // Handle demo users - return empty data
+    if (session.user.id === 'demo-user-id') {
       return NextResponse.json({
         bookmarks: [],
         total: 0,
@@ -23,8 +23,48 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // This code is unreachable due to early return above
-    // Keeping for future database re-integration
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      userId: session.user.id,
+    };
+
+    if (category) {
+      where.category = category;
+    }
+
+    if (search) {
+      where.OR = [
+        { content: { contains: search, mode: 'insensitive' } },
+        { summary: { contains: search, mode: 'insensitive' } },
+        { keywords: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [bookmarks, total] = await Promise.all([
+      prisma.bookmark.findMany({
+        where,
+        orderBy: { bookmarkedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.bookmark.count({ where }),
+    ]);
+
+    const pages = Math.ceil(total / limit);
+
+    return NextResponse.json({
+      bookmarks,
+      total,
+      page,
+      pages,
+    });
   } catch (error) {
     console.error('Error fetching bookmarks:', error);
     return NextResponse.json(

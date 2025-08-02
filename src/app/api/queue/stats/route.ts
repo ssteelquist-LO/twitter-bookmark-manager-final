@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Handle demo users OR when database is not available - return empty queue stats  
-    if (session.user.id === 'demo-user-id' || true) {
+    // Handle demo users - return empty queue stats  
+    if (session.user.id === 'demo-user-id') {
       return NextResponse.json({
         pending: 0,
         processing: 0,
@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // This code is unreachable due to early return above
-    // Keeping for future queue re-integration
+    const stats = await getQueueStats();
+    return NextResponse.json(stats);
   } catch (error) {
     console.error('Error fetching queue stats:', error);
     return NextResponse.json(
