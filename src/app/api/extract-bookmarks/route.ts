@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { addToQueue } from '@/lib/queue';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -48,17 +50,162 @@ export async function POST(request: NextRequest) {
       }
 
       const sessionData = await sessionResponse.json();
+      const sessionId = sessionData.id;
       
-      // Step 2: Use the browser session to navigate to Twitter bookmarks
-      // This would require implementing the actual browser automation
-      // For now, return the session info
+      console.log(`Created Browserbase session: ${sessionId}`);
+      
+      // Step 2: Use Playwright/Puppeteer commands via Browserbase to extract bookmarks
+      const automationScript = `
+        // Navigate to Twitter bookmarks page
+        await page.goto('https://twitter.com/i/bookmarks');
+        
+        // Wait for bookmarks to load
+        await page.waitForSelector('[data-testid="tweet"]', { timeout: 10000 });
+        
+        // Scroll to load more bookmarks
+        for (let i = 0; i < 3; i++) {
+          await page.evaluate(() => window.scrollBy(0, 1000));
+          await page.waitForTimeout(2000);
+        }
+        
+        // Extract bookmark data
+        const bookmarks = await page.evaluate(() => {
+          const tweets = document.querySelectorAll('[data-testid="tweet"]');
+          const bookmarkData = [];
+          
+          tweets.forEach((tweet, index) => {
+            if (index >= 20) return; // Limit to first 20 bookmarks
+            
+            try {
+              const textElement = tweet.querySelector('[data-testid="tweetText"]');
+              const authorElement = tweet.querySelector('[data-testid="User-Name"] span');
+              const handleElement = tweet.querySelector('[data-testid="User-Name"] a');
+              const timeElement = tweet.querySelector('time');
+              
+              const content = textElement?.textContent || '';
+              const authorName = authorElement?.textContent || 'Unknown';
+              const handle = handleElement?.href?.split('/').pop() || 'unknown';
+              const tweetUrl = tweet.querySelector('a[href*="/status/"]')?.href || '';
+              const tweetId = tweetUrl.split('/status/')[1]?.split('?')[0] || '';
+              
+              if (content && tweetId) {
+                bookmarkData.push({
+                  id: tweetId,
+                  content: content,
+                  authorName: authorName,
+                  authorHandle: handle,
+                  tweetUrl: tweetUrl,
+                  createdAt: timeElement?.getAttribute('datetime') || new Date().toISOString(),
+                });
+              }
+            } catch (err) {
+              console.log('Error extracting tweet data:', err);
+            }
+          });
+          
+          return bookmarkData;
+        });
+        
+        return bookmarks;
+      `;
+      
+      // Execute the automation script
+      const automationResponse = await fetch(`https://www.browserbase.com/api/v1/sessions/${sessionId}/actions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.BROWSERBASE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'evaluate',
+          script: automationScript,
+        }),
+      });
+      
+      if (!automationResponse.ok) {
+        throw new Error(`Automation failed: ${automationResponse.statusText}`);
+      }
+      
+      const automationResult = await automationResponse.json();
+      const extractedBookmarks = automationResult.result || [];
+      
+      // Clean up the browser session
+      await fetch(`https://www.browserbase.com/api/v1/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${process.env.BROWSERBASE_API_KEY}`,
+        },
+      });
+      
+      console.log(`Extracted ${extractedBookmarks.length} bookmarks from Twitter`);
+      
+      // Save extracted bookmarks to database and queue for AI analysis
+      let savedCount = 0;
+      let queuedCount = 0;
+      
+      for (const bookmark of extractedBookmarks) {
+        try {
+          // Create bookmark in database
+          const savedBookmark = await prisma.bookmark.upsert({
+            where: {
+              userId_tweetId: {
+                userId: session.user.id,
+                tweetId: bookmark.id,
+              },
+            },
+            update: {
+              content: bookmark.content,
+              authorHandle: bookmark.authorHandle,
+              authorName: bookmark.authorName,
+              tweetUrl: bookmark.tweetUrl,
+              bookmarkedAt: new Date(bookmark.createdAt),
+            },
+            create: {
+              userId: session.user.id,
+              tweetId: bookmark.id,
+              tweetUrl: bookmark.tweetUrl,
+              authorHandle: bookmark.authorHandle,
+              authorName: bookmark.authorName,
+              content: bookmark.content,
+              bookmarkedAt: new Date(bookmark.createdAt),
+              category: null,
+              summary: null,
+              sentiment: null,
+              keywords: null,
+              isThread: false,
+              threadSummary: null,
+              exportedToSheets: false,
+              exportedAt: null,
+            },
+          });
+          
+          savedCount++;
+          
+          // Queue for AI analysis if not already analyzed
+          if (!savedBookmark.category || !savedBookmark.summary) {
+            await addToQueue('analyze-bookmark', {
+              bookmarkId: savedBookmark.id,
+              userId: session.user.id,
+              content: bookmark.content,
+              tweetUrl: bookmark.tweetUrl,
+            });
+            queuedCount++;
+          }
+          
+        } catch (dbError) {
+          console.error(`Error saving bookmark ${bookmark.id}:`, dbError);
+          // Continue with other bookmarks even if one fails
+        }
+      }
       
       return NextResponse.json({
         success: true,
-        message: 'Browserbase session created successfully',
-        sessionId: sessionData.id,
-        status: 'ready_for_automation',
-        note: 'Browser session ready - bookmark extraction logic to be implemented',
+        message: `Successfully extracted ${extractedBookmarks.length} bookmarks from Twitter`,
+        extractedCount: extractedBookmarks.length,
+        savedCount: savedCount,
+        queuedCount: queuedCount,
+        bookmarks: extractedBookmarks.slice(0, 3), // Show first 3 as preview
+        sessionId: sessionId,
         timestamp: new Date().toISOString(),
       });
 

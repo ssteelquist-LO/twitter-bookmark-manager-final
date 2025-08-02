@@ -14,6 +14,14 @@ export const authOptions: NextAuthOptions = {
         clientId: process.env.TWITTER_CLIENT_ID,
         clientSecret: process.env.TWITTER_CLIENT_SECRET,
         version: '2.0',
+        authorization: {
+          params: {
+            scope: 'tweet.read users.read bookmark.read offline.access',
+          },
+        },
+        httpOptions: {
+          timeout: 10000,
+        },
       })
     ] : []),
     
@@ -48,5 +56,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+  },
+  pages: {
+    error: '/auth/error', // Custom error page for rate limiting
   },
 };

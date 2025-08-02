@@ -5,7 +5,7 @@ import { BookmarkCard } from './BookmarkCard';
 import { QueueStatus } from './QueueStatus';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Download, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, Globe } from 'lucide-react';
 import { Bookmark } from '@prisma/client';
 
 interface Category {
@@ -26,6 +26,7 @@ export function BookmarkList({ initialBookmarks, initialCategories }: BookmarkLi
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   const fetchBookmarks = async () => {
     setLoading(true);
@@ -101,6 +102,31 @@ export function BookmarkList({ initialBookmarks, initialCategories }: BookmarkLi
     }
   };
 
+  const extractBookmarks = async () => {
+    setExtracting(true);
+    try {
+      const response = await fetch('/api/extract-bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Successfully extracted ${data.extractedCount} bookmarks from Twitter!\n\nSaved: ${data.savedCount} bookmarks\nQueued for AI analysis: ${data.queuedCount} bookmarks`);
+        await fetchBookmarks();
+        await fetchCategories();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to extract bookmarks');
+      }
+    } catch (error) {
+      console.error('Error extracting bookmarks:', error);
+      alert(`Failed to extract bookmarks: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchBookmarks();
@@ -150,6 +176,17 @@ export function BookmarkList({ initialBookmarks, initialCategories }: BookmarkLi
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing...' : 'Sync'}
+          </Button>
+          
+          <Button
+            onClick={extractBookmarks}
+            disabled={extracting}
+            size="sm"
+            variant="outline"
+            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+          >
+            <Globe className={`h-4 w-4 mr-2 ${extracting ? 'animate-spin' : ''}`} />
+            {extracting ? 'Extracting...' : 'Extract Real Bookmarks'}
           </Button>
           
           <Button
