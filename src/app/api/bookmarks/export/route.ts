@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const sheetBookmarks: SheetBookmark[] = bookmarks.map(bookmark => ({
       id: bookmark.id,
       tweetUrl: bookmark.tweetUrl,
-      author: bookmark.author,
+      author: `${bookmark.authorName} (@${bookmark.authorHandle})`,
       content: bookmark.content,
       category: bookmark.category || 'Uncategorized',
       summary: bookmark.summary || '',

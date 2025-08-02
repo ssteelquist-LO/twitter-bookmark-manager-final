@@ -49,7 +49,12 @@ export async function GET(request: NextRequest) {
         
         for (const bookmark of bookmarks) {
           const existingBookmark = await prisma.bookmark.findUnique({
-            where: { tweetId: bookmark.id }
+            where: {
+              userId_tweetId: {
+                userId: user.id,
+                tweetId: bookmark.id,
+              },
+            },
           });
           
           if (existingBookmark) continue;
@@ -59,7 +64,8 @@ export async function GET(request: NextRequest) {
               userId: user.id,
               tweetId: bookmark.id,
               tweetUrl: bookmark.url,
-              author: bookmark.author.name,
+              authorHandle: bookmark.author.username,
+              authorName: bookmark.author.name,
               content: bookmark.content,
               bookmarkedAt: new Date(bookmark.createdAt),
             },

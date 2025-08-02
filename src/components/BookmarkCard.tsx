@@ -35,7 +35,7 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
             <span className="font-medium text-sm text-gray-900">
-              @{bookmark.author}
+              {bookmark.authorName} (@{bookmark.authorHandle})
             </span>
             {bookmark.isThread && (
               <MessageSquare className="h-4 w-4 text-blue-500" />

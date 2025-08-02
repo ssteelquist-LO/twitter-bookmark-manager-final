@@ -64,9 +64,10 @@ model VerificationToken {
 model Bookmark {
   id              String   @id @default(cuid())
   userId          String
-  tweetId         String   @unique
+  tweetId         String
   tweetUrl        String
-  author          String
+  authorHandle    String
+  authorName      String
   content         String
   createdAt       DateTime @default(now())
   bookmarkedAt    DateTime
@@ -85,6 +86,7 @@ model Bookmark {
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
+  @@unique([userId, tweetId])
   @@index([userId])
   @@index([category])
   @@index([bookmarkedAt])
