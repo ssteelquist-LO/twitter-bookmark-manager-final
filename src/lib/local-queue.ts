@@ -17,22 +17,44 @@ export class LocalQueue {
   private queueDir: string;
   private queueFile: string;
   private processingFile: string;
+  private isServerless: boolean;
+  private memoryQueue: QueueJob[] = [];
+  private memoryProcessing: QueueJob[] = [];
 
   constructor(queueName: string) {
     this.queueDir = path.join(process.cwd(), '.queue');
     this.queueFile = path.join(this.queueDir, `${queueName}.json`);
     this.processingFile = path.join(this.queueDir, `${queueName}_processing.json`);
     
-    this.ensureQueueDir();
+    // Detect serverless environment (Vercel, AWS Lambda, etc.)
+    this.isServerless = !!(
+      process.env.VERCEL || 
+      process.env.AWS_LAMBDA_FUNCTION_NAME || 
+      process.env.NETLIFY ||
+      process.env.CF_PAGES
+    );
+
+    if (!this.isServerless) {
+      this.ensureQueueDir();
+    }
   }
 
   private ensureQueueDir() {
-    if (!fs.existsSync(this.queueDir)) {
-      fs.mkdirSync(this.queueDir, { recursive: true });
+    try {
+      if (!fs.existsSync(this.queueDir)) {
+        fs.mkdirSync(this.queueDir, { recursive: true });
+      }
+    } catch (error) {
+      console.warn('Cannot create queue directory, falling back to memory queue:', error);
+      this.isServerless = true;
     }
   }
 
   private readQueue(): QueueJob[] {
+    if (this.isServerless) {
+      return this.memoryQueue;
+    }
+    
     try {
       if (!fs.existsSync(this.queueFile)) {
         return [];
@@ -45,10 +67,25 @@ export class LocalQueue {
   }
 
   private writeQueue(jobs: QueueJob[]) {
-    fs.writeFileSync(this.queueFile, JSON.stringify(jobs, null, 2));
+    if (this.isServerless) {
+      this.memoryQueue = jobs;
+      return;
+    }
+    
+    try {
+      fs.writeFileSync(this.queueFile, JSON.stringify(jobs, null, 2));
+    } catch (error) {
+      console.warn('Cannot write queue file, using memory fallback:', error);
+      this.isServerless = true;
+      this.memoryQueue = jobs;
+    }
   }
 
   private readProcessing(): QueueJob[] {
+    if (this.isServerless) {
+      return this.memoryProcessing;
+    }
+    
     try {
       if (!fs.existsSync(this.processingFile)) {
         return [];
@@ -61,7 +98,18 @@ export class LocalQueue {
   }
 
   private writeProcessing(jobs: QueueJob[]) {
-    fs.writeFileSync(this.processingFile, JSON.stringify(jobs, null, 2));
+    if (this.isServerless) {
+      this.memoryProcessing = jobs;
+      return;
+    }
+    
+    try {
+      fs.writeFileSync(this.processingFile, JSON.stringify(jobs, null, 2));
+    } catch (error) {
+      console.warn('Cannot write processing file, using memory fallback:', error);
+      this.isServerless = true;
+      this.memoryProcessing = jobs;
+    }
   }
 
   async add(jobData: Omit<QueueJob, 'id' | 'attempts' | 'createdAt' | 'processAt'>): Promise<string> {
