@@ -16,21 +16,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Test Twitter API connection first
-    console.log('Testing Twitter API connection...');
-    const twitterService = new TwitterService();
+    // For now, let's create some demo data to test the pipeline
+    console.log('Creating demo bookmark data for testing...');
     
-    let bookmarks;
-    try {
-      bookmarks = await twitterService.getUserBookmarks(session.user.id);
-      console.log(`Fetched ${bookmarks.length} bookmarks from Twitter API`);
-    } catch (twitterError) {
-      console.error('Twitter API Error:', twitterError);
-      return NextResponse.json({
-        error: `Twitter API failed: ${twitterError instanceof Error ? twitterError.message : 'Unknown error'}`,
-        details: 'Please check your Twitter API credentials and permissions'
-      }, { status: 400 });
-    }
+    const bookmarks = [
+      {
+        id: '1234567890',
+        url: 'https://twitter.com/example/status/1234567890',
+        author: { username: 'example', name: 'Example User' },
+        content: 'This is a demo tweet about artificial intelligence and machine learning. It discusses how AI is transforming software development.',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: '1234567891', 
+        url: 'https://twitter.com/demo/status/1234567891',
+        author: { username: 'demo', name: 'Demo Account' },
+        content: 'Another demo tweet about React and Next.js development. Building full-stack applications with modern tools.',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: '1234567892',
+        url: 'https://twitter.com/test/status/1234567892', 
+        author: { username: 'test', name: 'Test User' },
+        content: 'Demo tweet about TypeScript and database design. How to build scalable applications with proper type safety.',
+        createdAt: new Date().toISOString(),
+      }
+    ];
+    
+    console.log(`Created ${bookmarks.length} demo bookmarks for testing`);
     
     // For now, just return the bookmarks we fetched (without saving to DB)
     // This tests if the Twitter API is working
