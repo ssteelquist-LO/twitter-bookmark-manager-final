@@ -30,36 +30,99 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // For now, let's return demo extracted bookmarks since we need to debug the Browserbase API
-      // This simulates what would be extracted from Twitter bookmarks
-      const demoExtractedBookmarks = [
-        {
-          id: 'extracted-1',
-          content: 'Just discovered this amazing TypeScript tip that will change how you write interfaces forever! 🤯 Thread below with examples.',
-          authorName: 'TypeScript Tips', 
-          authorHandle: 'typescript_tips',
-          tweetUrl: 'https://twitter.com/typescript_tips/status/1234567890',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'extracted-2',
-          content: 'Building a real-time chat application with Next.js 15 and WebSockets. Here are the key architectural decisions we made.',
-          authorName: 'Web Dev Pro',
-          authorHandle: 'webdevpro',
-          tweetUrl: 'https://twitter.com/webdevpro/status/1234567891', 
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'extracted-3',
-          content: 'AI is transforming how we approach database design. This new tool generates optimized schemas from natural language descriptions.',
-          authorName: 'AI Developer',
-          authorHandle: 'ai_developer',
-          tweetUrl: 'https://twitter.com/ai_developer/status/1234567892',
-          createdAt: new Date().toISOString(),
-        },
-      ];
+      // Import Browserbase SDK
+      const { Browserbase } = await import('@browserbasehq/sdk');
+      
+      console.log('Initializing Browserbase SDK...');
+      const bb = new Browserbase({ 
+        apiKey: process.env.BROWSERBASE_API_KEY!
+      });
 
-      const extractedBookmarks = demoExtractedBookmarks;
+      // Create browser session
+      console.log('Creating browser session...');
+      const browserSession = await bb.sessions.create({
+        projectId: process.env.BROWSERBASE_PROJECT_ID!,
+      });
+      
+      console.log('Browser session created:', browserSession.id);
+
+      // Connect to the browser and extract bookmarks
+      console.log('Connecting to browser...');
+      const browser = await bb.connect(browserSession.id);
+      const page = await browser.newPage();
+
+      console.log('Navigating to Twitter bookmarks...');
+      await page.goto('https://twitter.com/i/bookmarks');
+      
+      // Wait for bookmarks to load
+      await page.waitForSelector('[data-testid="tweet"]', { timeout: 15000 });
+      
+      // Scroll to load more bookmarks
+      console.log('Scrolling to load more bookmarks...');
+      for (let i = 0; i < 3; i++) {
+        await page.evaluate(() => window.scrollBy(0, 1000));
+        await page.waitForTimeout(2000);
+      }
+      
+      // Extract bookmark data
+      console.log('Extracting bookmark data...');
+      const extractedBookmarks = await page.evaluate(() => {
+        const tweets = document.querySelectorAll('[data-testid="tweet"]');
+        const bookmarkData = [];
+        
+        tweets.forEach((tweet, index) => {
+          if (index >= 20) return; // Limit to first 20 bookmarks
+          
+          try {
+            const textElement = tweet.querySelector('[data-testid="tweetText"]');
+            const authorElement = tweet.querySelector('[data-testid="User-Name"] span');
+            const handleElement = tweet.querySelector('[data-testid="User-Name"] a');
+            const timeElement = tweet.querySelector('time');
+            
+            const content = textElement?.textContent || '';
+            const authorName = authorElement?.textContent || 'Unknown';
+            const handle = handleElement?.href?.split('/').pop() || 'unknown';
+            const tweetUrl = tweet.querySelector('a[href*="/status/"]')?.href || '';
+            const tweetId = tweetUrl.split('/status/')[1]?.split('?')[0] || '';
+            
+            if (content && tweetId) {
+              bookmarkData.push({
+                id: tweetId,
+                content: content,
+                authorName: authorName,
+                authorHandle: handle,
+                tweetUrl: tweetUrl,
+                createdAt: timeElement?.getAttribute('datetime') || new Date().toISOString(),
+              });
+            }
+          } catch (err) {
+            console.log('Error extracting tweet data:', err);
+          }
+        });
+        
+        return bookmarkData;
+      });
+
+      // Clean up browser session
+      await browser.close();
+      
+      console.log(`Successfully extracted ${extractedBookmarks.length} real bookmarks`);
+      
+      if (extractedBookmarks.length === 0) {
+        // Fallback to demo bookmarks if extraction failed
+        console.log('No bookmarks extracted, using demo bookmarks as fallback');
+        const demoExtractedBookmarks = [
+          {
+            id: 'demo-extracted-1',
+            content: 'Demo: Real bookmark extraction attempted but no bookmarks found. This could mean you need to log into Twitter first.',
+            authorName: 'Bookmark Manager', 
+            authorHandle: 'demo_system',
+            tweetUrl: 'https://twitter.com/demo_system/status/1234567890',
+            createdAt: new Date().toISOString(),
+          }
+        ];
+        extractedBookmarks.push(...demoExtractedBookmarks);
+      }
       
       console.log(`Extracted ${extractedBookmarks.length} bookmarks from Twitter`);
       
