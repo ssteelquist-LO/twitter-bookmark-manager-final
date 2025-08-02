@@ -32,7 +32,7 @@ export default async function Home() {
   let bookmarks: any[] = [];
   let categories: any[] = [];
   
-  // Skip database queries for demo users
+  // Skip database queries for demo users or when database is unreachable
   const isDemo = session.user.id === 'demo-user-id';
   
   if (!isDemo) {
@@ -63,7 +63,9 @@ export default async function Home() {
       categories = results[1];
     } catch (error) {
       console.error('Database error:', error);
-      // Continue with empty arrays
+      // Continue with empty arrays - this allows the app to work even with DB issues
+      bookmarks = [];
+      categories = [];
     }
   } else {
     // Demo users get empty arrays to avoid hydration issues
